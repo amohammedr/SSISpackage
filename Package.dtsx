@@ -1,0 +1,2270 @@
+﻿<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="10/8/2026 11:00:08 AM"
+  DTS:CreationName="Microsoft.Package"
+  DTS:CreatorComputerName="HSD00DPC067143"
+  DTS:CreatorName="DOHUSERS\RafayMohammedA"
+  DTS:DTSID="{7A50182E-3426-426B-94B2-85D48F077752}"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LastModifiedProductVersion="17.0.1016.0"
+  DTS:LocaleID="1033"
+  DTS:ObjectName="Package"
+  DTS:PackageType="5"
+  DTS:VersionBuild="21"
+  DTS:VersionGUID="{BFE9EC7A-7AA4-403A-A22B-A2A492785C88}">
+  <DTS:Property
+    DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager
+      DTS:refId="Package.ConnectionManagers[DCHP00DDBS009.EHD_v3]"
+      DTS:CreationName="OLEDB"
+      DTS:DTSID="{03FC6481-ABF5-4767-B701-FFBF13F6AA50}"
+      DTS:ObjectName="DCHP00DDBS009.EHD_v3">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectRetryCount="1"
+          DTS:ConnectRetryInterval="5"
+          DTS:ConnectionString="Data Source=DCHP00DDBS009;Initial Catalog=EHD_v3;Provider=SQLNCLI11.1;Integrated Security=SSPI;Application Name=SSIS-Package-{03FC6481-ABF5-4767-B701-FFBF13F6AA50}DCHP00DDBS009.EHD_v3;Auto Translate=False;" />
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+    <DTS:ConnectionManager
+      DTS:refId="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+      DTS:CreationName="OLEDB"
+      DTS:DTSID="{29639570-B262-417B-81C2-6B414AD57543}"
+      DTS:ObjectName="DCHP00DDBS011.EHD_Test">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectRetryCount="1"
+          DTS:ConnectRetryInterval="5"
+          DTS:ConnectionString="Data Source=DCHP00DDBS011;Initial Catalog=EHD_Test;Provider=SQLNCLI11.1;Integrated Security=SSPI;Application Name=SSIS-Package-{29639570-B262-417B-81C2-6B414AD57543}DCHP00DDBS011.EHD_Test;Auto Translate=False;" />
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+  <DTS:Variables />
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\Clasify Ledger"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{73A2BE05-AF5D-49A8-876A-95170616A118}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Clasify Ledger"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:SqlStatementSource="INSERT INTO migration.DocumentTransfer&#xA;(&#xA;    SourceDocumentID, SourceParentKind, SourceParentID, LegacyEntityID,&#xA;    SourceFileName, SourceFilePath, DocumentDescription, DocumentExtension,&#xA;    SourceContentKind, SourceDocumentTypeID, SourceDocumentTypeName,&#xA;    ContentSHA256, ContentBytes, SourceCreatedBy, SourceDateCreated,&#xA;    IsArchived, IsDeleted, FileStatus, ParentRoute,&#xA;    MigrationStatus, StatusReason&#xA;)&#xA;SELECT&#xA;    s.SourceDocumentID, s.SourceParentKind, s.SourceParentID, s.LegacyEntityID,&#xA;    s.SourceFileName, s.SourceFilePath, s.DocumentDescription, s.DocumentExtension,&#xA;    s.SourceContentKind, s.SourceDocumentTypeID, s.SourceDocumentTypeName,&#xA;    s.ContentSHA256, s.ContentBytes, s.SourceCreatedBy, s.SourceDateCreated,&#xA;    s.IsArchived, s.IsDeleted, s.FileStatus, s.ParentRoute,&#xA;    'Staged', NULL&#xA;FROM migration.DocumentTransferStage AS s&#xA;WHERE NOT EXISTS&#xA;(&#xA;    SELECT 1&#xA;    FROM migration.DocumentTransfer AS t&#xA;    WHERE t.SourceDocumentID = s.SourceDocumentID&#xA;      AND t.SourceParentKind = s.SourceParentKind&#xA;      AND t.SourceParentID = s.SourceParentID&#xA;);&#xA;&#xA;UPDATE t&#xA;SET LegacyDocTypeID = dt.DocType_ID&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN dbo.tblDocumentTypes AS dt&#xA;    ON dt.DocType_Description = t.SourceDocumentTypeName&#xA;WHERE t.MigrationStatus = 'Staged';&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedDeleted',&#xA;    StatusReason = 'Deleted in EHD 3.0'&#xA;WHERE MigrationStatus = 'Staged' AND IsDeleted = 1;&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedEhd2',&#xA;    StatusReason = 'Legacy share pointer, not an uploaded 3.0 file'&#xA;WHERE MigrationStatus = 'Staged' AND SourceContentKind = 'Ehd2Share';&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedExtension',&#xA;    StatusReason = 'Blocked extension'&#xA;WHERE MigrationStatus = 'Staged'&#xA;  AND DocumentExtension IN ('.exe', '.dll', '.bat');&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedNoParent',&#xA;    StatusReason = 'No permit or entity on the inspection chain'&#xA;WHERE MigrationStatus = 'Staged'&#xA;  AND (SourceParentKind = 'U' OR LegacyEntityID IS NULL AND SourceParentKind &lt;&gt; 'N');&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedComplaint',&#xA;    StatusReason = '3.0 complaint id is not a 1.0 nuisance id'&#xA;WHERE MigrationStatus = 'Staged' AND SourceParentKind = 'N';&#xA;&#xA;UPDATE t&#xA;SET MigrationStatus = 'SkippedNoEntity',&#xA;    StatusReason = 'Entity id is not in tblEntity'&#xA;FROM migration.DocumentTransfer AS t&#xA;WHERE t.MigrationStatus = 'Staged'&#xA;  AND NOT EXISTS&#xA;  (&#xA;      SELECT 1 FROM dbo.tblEntity AS e WHERE e.EntityID = t.LegacyEntityID&#xA;  );&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedNoType',&#xA;    StatusReason = 'No legacy document type with this name'&#xA;WHERE MigrationStatus = 'Staged' AND LegacyDocTypeID IS NULL;&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'Ready',&#xA;    StatusReason = NULL&#xA;WHERE MigrationStatus = 'Staged';&#xA;&#xA;;WITH Ranked AS&#xA;(&#xA;    SELECT&#xA;        TransferID,&#xA;        ROW_NUMBER() OVER&#xA;        (&#xA;            PARTITION BY LegacyEntityID, ContentSHA256&#xA;            ORDER BY SourceDateCreated, SourceDocumentID&#xA;        ) AS rn&#xA;    FROM migration.DocumentTransfer&#xA;    WHERE MigrationStatus = 'Ready'&#xA;      AND SourceContentKind = 'SqlBlob'&#xA;      AND ContentSHA256 IS NOT NULL&#xA;)&#xA;UPDATE t&#xA;SET MigrationStatus = 'SkippedDuplicate',&#xA;    StatusReason = 'Same file contents already kept for this entity'&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN Ranked AS r ON r.TransferID = t.TransferID&#xA;WHERE r.rn &gt; 1;&#xA;&#xA;UPDATE t&#xA;SET MigrationStatus = 'Loaded',&#xA;    LegacyDocumentID = t.SourceDocumentID,&#xA;    StatusReason = 'Link already exists'&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN dbo.tblEntityDocument AS ed&#xA;    ON ed.Document_ID = t.SourceDocumentID&#xA;   AND ed.Entity_ID = t.LegacyEntityID&#xA;WHERE t.MigrationStatus = 'Ready';&#xA;Then run this in SSMS and keep the result:&#xA;&#xA;SELECT MigrationStatus, SourceContentKind, COUNT(*) AS Rows&#xA;FROM migration.DocumentTransfer&#xA;GROUP BY MigrationStatus, SourceContentKind&#xA;ORDER BY MigrationStatus, SourceContentKind;&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Clear Working Rows"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{3EA3C1BD-A171-42EF-8AB0-86B55FD9052C}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Clear Working Rows"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{29639570-B262-417B-81C2-6B414AD57543}"
+          SQLTask:SqlStatementSource="TRUNCATE TABLE migration.DocumentTransferStage;&#x9;TRUNCATE TABLE migration.Filestage;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Link SQL Blobs"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{D2A06D9E-D96E-4E1B-BB03-5E01938C1BD8}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Link SQL Blobs"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{29639570-B262-417B-81C2-6B414AD57543}"
+          SQLTask:SqlStatementSource="INSERT INTO dbo.tblEntityDocument&#xA;(&#xA;    Entity_ID, Document_ID, DocType_ID, DocNotes,&#xA;    isRequired, isAdmin, isArchived,&#xA;    CreatedBy, CreatedDate, SourceID&#xA;)&#xA;SELECT&#xA;    t.LegacyEntityID,&#xA;    t.SourceDocumentID,&#xA;    t.LegacyDocTypeID,&#xA;    NULL,&#xA;    0,&#xA;    0,&#xA;    t.IsArchived,&#xA;    LEFT(t.SourceCreatedBy, 50),&#xA;    COALESCE(t.SourceDateCreated, GETDATE()),&#xA;    'E'&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN dbo.tblDocuments AS d&#xA;    ON d.Document_ID = t.SourceDocumentID&#xA;WHERE t.MigrationStatus = 'Ready'&#xA;  AND t.SourceContentKind = 'SqlBlob'&#xA;  AND NOT EXISTS&#xA;  (&#xA;      SELECT 1&#xA;      FROM dbo.tblEntityDocument AS ed&#xA;      WHERE ed.Document_ID = t.SourceDocumentID&#xA;        AND ed.Entity_ID = t.LegacyEntityID&#xA;  );&#xA;&#xA;UPDATE t&#xA;SET MigrationStatus = 'Loaded',&#xA;    LegacyDocumentID = t.SourceDocumentID,&#xA;    LegacyEntityDocID = ed.EntityDoc_ID,&#xA;    LastUpdatedUtc = SYSUTCDATETIME()&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN dbo.tblEntityDocument AS ed&#xA;    ON ed.Document_ID = t.SourceDocumentID&#xA;   AND ed.Entity_ID = t.LegacyEntityID&#xA;WHERE t.MigrationStatus = 'Ready'&#xA;  AND t.SourceContentKind = 'SqlBlob';&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Load disk files and reconcile"
+      DTS:CreationName="Microsoft.ExecuteSQLTask"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{3C65B9F8-A379-4686-A3C5-C571008891F3}"
+      DTS:ExecutableType="Microsoft.ExecuteSQLTask"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Load disk files and reconcile"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2025; © 2025 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{29639570-B262-417B-81C2-6B414AD57543}"
+          SQLTask:SqlStatementSource="UPDATE s&#xA;SET ContentSHA256 = CONVERT(char(64), HASHBYTES('SHA2_256', s.DocumentBytes), 2)&#xA;FROM migration.FileStage AS s;&#xA;&#xA;;WITH Ranked AS&#xA;(&#xA;    SELECT&#xA;        t.TransferID,&#xA;        ROW_NUMBER() OVER&#xA;        (&#xA;            PARTITION BY t.LegacyEntityID, s.ContentSHA256&#xA;            ORDER BY t.SourceDateCreated, t.SourceDocumentID&#xA;        ) AS rn&#xA;    FROM migration.DocumentTransfer AS t&#xA;    JOIN migration.FileStage AS s ON s.SourceDocumentID = t.SourceDocumentID&#xA;    WHERE t.MigrationStatus = 'Ready'&#xA;      AND t.SourceContentKind = 'FilePath'&#xA;)&#xA;UPDATE t&#xA;SET MigrationStatus = 'SkippedDuplicate',&#xA;    StatusReason = 'Same file contents already kept for this entity',&#xA;    ContentSHA256 = s.ContentSHA256&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN Ranked AS r ON r.TransferID = t.TransferID&#xA;JOIN migration.FileStage AS s ON s.SourceDocumentID = t.SourceDocumentID&#xA;WHERE r.rn &gt; 1;&#xA;&#xA;UPDATE t&#xA;SET ContentSHA256 = s.ContentSHA256&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN migration.FileStage AS s ON s.SourceDocumentID = t.SourceDocumentID&#xA;WHERE t.MigrationStatus = 'Ready';&#xA;&#xA;INSERT INTO dbo.tblDocuments&#xA;(&#xA;    Document_ID, Document_Description, Document_Extension,&#xA;    Document, created_by, created_date, File_Status&#xA;)&#xA;SELECT&#xA;    t.SourceDocumentID,&#xA;    t.DocumentDescription,&#xA;    t.DocumentExtension,&#xA;    s.DocumentBytes,&#xA;    LEFT(t.SourceCreatedBy, 50),&#xA;    COALESCE(t.SourceDateCreated, GETDATE()),&#xA;    t.FileStatus&#xA;FROM migration.FileStage AS s&#xA;JOIN migration.DocumentTransfer AS t&#xA;    ON t.SourceDocumentID = s.SourceDocumentID&#xA;WHERE t.MigrationStatus = 'Ready'&#xA;  AND t.SourceContentKind = 'FilePath'&#xA;  AND NOT EXISTS&#xA;  (&#xA;      SELECT 1 FROM dbo.tblDocuments AS d&#xA;      WHERE d.Document_ID = t.SourceDocumentID&#xA;  );&#xA;&#xA;INSERT INTO dbo.tblEntityDocument&#xA;(&#xA;    Entity_ID, Document_ID, DocType_ID, DocNotes,&#xA;    isRequired, isAdmin, isArchived,&#xA;    CreatedBy, CreatedDate, SourceID&#xA;)&#xA;SELECT&#xA;    t.LegacyEntityID, t.SourceDocumentID, t.LegacyDocTypeID, NULL,&#xA;    0, 0, t.IsArchived,&#xA;    LEFT(t.SourceCreatedBy, 50),&#xA;    COALESCE(t.SourceDateCreated, GETDATE()),&#xA;    'E'&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN dbo.tblDocuments AS d ON d.Document_ID = t.SourceDocumentID&#xA;WHERE t.MigrationStatus = 'Ready'&#xA;  AND t.SourceContentKind = 'FilePath'&#xA;  AND NOT EXISTS&#xA;  (&#xA;      SELECT 1 FROM dbo.tblEntityDocument AS ed&#xA;      WHERE ed.Document_ID = t.SourceDocumentID&#xA;        AND ed.Entity_ID = t.LegacyEntityID&#xA;  );&#xA;&#xA;UPDATE t&#xA;SET MigrationStatus = 'Loaded',&#xA;    LegacyDocumentID = t.SourceDocumentID,&#xA;    LegacyEntityDocID = ed.EntityDoc_ID,&#xA;    LastUpdatedUtc = SYSUTCDATETIME()&#xA;FROM migration.DocumentTransfer AS t&#xA;JOIN dbo.tblEntityDocument AS ed&#xA;    ON ed.Document_ID = t.SourceDocumentID&#xA;   AND ed.Entity_ID = t.LegacyEntityID&#xA;WHERE t.MigrationStatus = 'Ready'&#xA;  AND t.SourceContentKind = 'FilePath';&#xA;&#xA;UPDATE migration.DocumentTransfer&#xA;SET MigrationStatus = 'SkippedUnreadable',&#xA;    StatusReason = 'File path could not be read from this machine'&#xA;WHERE MigrationStatus = 'Ready'&#xA;  AND SourceContentKind = 'FilePath'&#xA;  AND LegacyDocumentID IS NULL;&#xA;&#xA;SELECT MigrationStatus, SourceContentKind, COUNT(*) AS Rows&#xA;FROM migration.DocumentTransfer&#xA;GROUP BY MigrationStatus, SourceContentKind&#xA;ORDER BY MigrationStatus, SourceContentKind;&#xA;&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Load Manifest"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Data Flow Task"
+      DTS:DTSID="{4DFD8844-AF91-4E95-B605-F6BE57A5DCCF}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Load Manifest"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\Load Manifest\OLE DB Destination"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="OLE DB Destination;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;4"
+              description="OLE DB Destination"
+              name="OLE DB Destination"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the name of the database object used to open a rowset."
+                  name="OpenRowset">[dbo].[tblDocuments]</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the variable that contains the name of the database object used to open a rowset."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="The SQL command to be executed."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forces the use of the DefaultCodePage property value when describing character data."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the mode used to access the database."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indicates whether the values supplied for identity columns will be copied to the destination. If false, values for identity columns will be auto-generated at the destination. Applies only if fast load is turned on."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indicates whether the columns containing null will have null inserted in the destination. If false, columns containing null will have their default values inserted at the destination. Applies only if fast load is turned on."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies options to be used with fast load.  Applies only if fast load is turned on."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies when commits are issued during data insertion.  A value of 0 specifies that one commit will be issued at the end of data insertion.  Applies only if fast load is turned on."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Load Manifest\OLE DB Destination.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  description="The OLE DB runtime connection used to access the database."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input]"
+                  errorOrTruncationOperation="Insert"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="OLE DB Destination Input">
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document_ID]"
+                      dataType="guid"
+                      name="Document_ID" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document_Description]"
+                      dataType="wstr"
+                      length="255"
+                      name="Document_Description" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document_Extension]"
+                      dataType="wstr"
+                      length="25"
+                      name="Document_Extension" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document]"
+                      dataType="image"
+                      name="Document" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[created_by]"
+                      codePage="1252"
+                      dataType="str"
+                      length="50"
+                      name="created_by" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[created_date]"
+                      dataType="dbTimeStamp"
+                      name="created_date" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Archive_Date]"
+                      dataType="dbTimeStamp"
+                      name="Archive_Date" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[File_Status]"
+                      dataType="i4"
+                      name="File_Status" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Load Manifest\OLE DB Destination.Outputs[OLE DB Destination Error Output]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="OLE DB Destination Error Output"
+                  synchronousInputId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Load Manifest\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Load Manifest\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Load Manifest\OLE DB Source"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="OLE DB Source;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;7"
+              description="OLE DB Source"
+              name="OLE DB Source"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the name of the database object used to open a rowset."
+                  name="OpenRowset">[ehd].[Document]</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the variable that contains the name of the database object used to open a rowset."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="The SQL command to be executed."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">WITH Parents AS
+(
+    SELECT d.DocumentID, 'E' AS SourceParentKind,
+           CONVERT(varchar(40), p.EntityId) AS SourceParentID,
+           CONVERT(bigint, p.EntityId) AS LegacyEntityID,
+           'Inspection-Permit-Entity' AS ParentRoute
+    FROM ehd.Document AS d
+    JOIN ehd.Inspection AS i ON i.InspectionID = d.InspectionID
+    JOIN ehd.Permit AS p ON p.PermitID = i.PermitID
+    WHERE p.EntityId IS NOT NULL
+
+    UNION ALL
+    SELECT d.DocumentID, 'E', CONVERT(varchar(40), d.EHD2EntityID),
+           CONVERT(bigint, d.EHD2EntityID), 'EHD2EntityID'
+    FROM ehd.Document AS d
+    WHERE d.EHD2EntityID IS NOT NULL
+
+    UNION ALL
+    SELECT d.DocumentID, 'E', CONVERT(varchar(40), p.EntityId),
+           CONVERT(bigint, p.EntityId), 'PermitDocument'
+    FROM ehd.Document AS d
+    JOIN ehd.PermitDocument AS x ON x.DocumentID = d.DocumentID
+    JOIN ehd.Permit AS p ON p.PermitID = x.PermitID
+    WHERE p.EntityId IS NOT NULL
+
+    UNION ALL
+    SELECT d.DocumentID, 'E', CONVERT(varchar(40), p.EntityId),
+           CONVERT(bigint, p.EntityId), 'InspectionDocument'
+    FROM ehd.Document AS d
+    JOIN ehd.InspectionDocument AS x ON x.DocumentID = d.DocumentID
+    JOIN ehd.Inspection AS i ON i.InspectionID = x.InspectionID
+    JOIN ehd.Permit AS p ON p.PermitID = i.PermitID
+    WHERE p.EntityId IS NOT NULL
+
+    UNION ALL
+    SELECT d.DocumentID, 'E', CONVERT(varchar(40), p.EntityId),
+           CONVERT(bigint, p.EntityId), 'RegistrationApp'
+    FROM ehd.Document AS d
+    JOIN ehd.PermitDetailLUW AS x ON x.RegistrationAppID = d.DocumentID
+    JOIN ehd.Permit AS p ON p.PermitID = x.PermitID
+    WHERE p.EntityId IS NOT NULL
+
+    UNION ALL
+    SELECT d.DocumentID, 'E', CONVERT(varchar(40), p.EntityId),
+           CONVERT(bigint, p.EntityId), 'CompletionReport'
+    FROM ehd.Document AS d
+    JOIN ehd.PermitDetailLUWWaterSource AS w ON w.CompletionReportID = d.DocumentID
+    JOIN ehd.PermitDetailLUW AS l ON l.PermitDetailLUWId = w.PermitDetailLUWId
+    JOIN ehd.Permit AS p ON p.PermitID = l.PermitID
+    WHERE p.EntityId IS NOT NULL
+
+    UNION ALL
+    SELECT d.DocumentID, 'N', CONVERT(varchar(40), x.ComplaintID),
+           NULL, 'Complaint'
+    FROM ehd.Document AS d
+    JOIN ehd.ComplaintDocument AS x ON x.DocumentID = d.DocumentID
+
+    UNION ALL
+    SELECT d.DocumentID, 'N', CONVERT(varchar(40), ci.ComplaintID),
+           NULL, 'ComplaintInvestigation'
+    FROM ehd.Document AS d
+    JOIN ehd.ComplaintInvestigationDocument AS x ON x.DocumentID = d.DocumentID
+    JOIN ehd.ComplaintInvestigation AS ci
+        ON ci.ComplaintInvestigationID = x.ComplaintInvestigationID
+),
+Chosen AS
+(
+    SELECT *
+    FROM Parents
+    UNION ALL
+    SELECT d.DocumentID, 'U', '', NULL, 'NoParent'
+    FROM ehd.Document AS d
+    WHERE NOT EXISTS
+    (
+        SELECT 1 FROM Parents AS p WHERE p.DocumentID = d.DocumentID
+    )
+)
+SELECT
+    d.DocumentID AS SourceDocumentID,
+    c.SourceParentKind,
+    c.SourceParentID,
+    c.LegacyEntityID,
+    d.FileName AS SourceFileName,
+    CASE WHEN LOWER(LTRIM(RTRIM(d.FilePath))) = 'import process' THEN NULL
+         ELSE d.FilePath END AS SourceFilePath,
+    LEFT(d.FileName, 255) AS DocumentDescription,
+    LEFT(CASE
+            WHEN CHARINDEX('.', REVERSE(d.FileName)) &gt; 0
+            THEN RIGHT(d.FileName, CHARINDEX('.', REVERSE(d.FileName)))
+            ELSE ''
+         END, 25) AS DocumentExtension,
+    CASE
+        WHEN ISNULL(d.IsEHD2Document, 0) = 1 THEN 'Ehd2Share'
+        WHEN d.FilePath = 'import process' AND d.DocumentFile IS NOT NULL THEN 'SqlBlob'
+        WHEN NULLIF(LTRIM(RTRIM(d.FilePath)), '') IS NOT NULL THEN 'FilePath'
+        ELSE 'Other'
+    END AS SourceContentKind,
+    d.DocumentTypeID AS SourceDocumentTypeID,
+    dt.DocumentType AS SourceDocumentTypeName,
+    CASE
+        WHEN d.FilePath = 'import process' AND d.DocumentFile IS NOT NULL
+        THEN CONVERT(char(64), HASHBYTES('SHA2_256', d.DocumentFile), 2)
+        ELSE NULL
+    END AS ContentSHA256,
+    CONVERT(bigint, COALESCE(DATALENGTH(d.DocumentFile), d.FileSize, 0)) AS ContentBytes,
+    LEFT(d.CreatedBy, 100) AS SourceCreatedBy,
+    CONVERT(datetime, d.DateCreated) AS SourceDateCreated,
+    CONVERT(bit, ISNULL(d.Isarchived, 0)) AS IsArchived,
+    CONVERT(bit, ISNULL(d.IsDeleted, 0)) AS IsDeleted,
+    CONVERT(tinyint,
+        CASE WHEN ISNULL(d.IsDeleted, 0) = 1 THEN 0
+             WHEN ISNULL(d.Isarchived, 0) = 1 THEN 2
+             ELSE 1 END) AS FileStatus,
+    c.ParentRoute
+FROM ehd.Document AS d
+JOIN Chosen AS c ON c.DocumentID = d.DocumentID
+LEFT JOIN lu.DocumentType AS dt ON dt.DocumentTypeID = d.DocumentTypeID;</property>
+                <property
+                  dataType="System.String"
+                  description="The variable that contains the SQL command to be executed."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forces the use of the DefaultCodePage property value when describing character data."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the mode used to access the database."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="The mappings between the parameters in the SQL command and variables."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Load Manifest\OLE DB Source.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS009.EHD_v3]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS009.EHD_v3]"
+                  description="The OLE DB runtime connection used to access the database."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output]"
+                  name="OLE DB Source Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[IsDeleted]"
+                      dataType="bool"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[IsDeleted]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[IsDeleted]"
+                      name="IsDeleted"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDocumentID]"
+                      dataType="guid"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDocumentID]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDocumentID]"
+                      name="SourceDocumentID"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceParentKind]"
+                      codePage="1252"
+                      dataType="str"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceParentKind]"
+                      length="1"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceParentKind]"
+                      name="SourceParentKind"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceParentID]"
+                      codePage="1252"
+                      dataType="str"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceParentID]"
+                      length="40"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceParentID]"
+                      name="SourceParentID"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[LegacyEntityID]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[LegacyEntityID]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[LegacyEntityID]"
+                      name="LegacyEntityID"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceFileName]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceFileName]"
+                      length="500"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceFileName]"
+                      name="SourceFileName"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceFilePath]"
+                      dataType="nText"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceFilePath]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceFilePath]"
+                      name="SourceFilePath"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentDescription]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentDescription]"
+                      length="255"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentDescription]"
+                      name="DocumentDescription"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentExtension]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentExtension]"
+                      length="25"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentExtension]"
+                      name="DocumentExtension"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceContentKind]"
+                      codePage="1252"
+                      dataType="str"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceContentKind]"
+                      length="9"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceContentKind]"
+                      name="SourceContentKind"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDocumentTypeID]"
+                      dataType="i4"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDocumentTypeID]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDocumentTypeID]"
+                      name="SourceDocumentTypeID"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDocumentTypeName]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDocumentTypeName]"
+                      length="150"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDocumentTypeName]"
+                      name="SourceDocumentTypeName"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[ContentSHA256]"
+                      codePage="1252"
+                      dataType="str"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[ContentSHA256]"
+                      length="64"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[ContentSHA256]"
+                      name="ContentSHA256"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[ContentBytes]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[ContentBytes]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[ContentBytes]"
+                      name="ContentBytes"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceCreatedBy]"
+                      dataType="wstr"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceCreatedBy]"
+                      length="100"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceCreatedBy]"
+                      name="SourceCreatedBy"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDateCreated]"
+                      dataType="dbTimeStamp"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDateCreated]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[SourceDateCreated]"
+                      name="SourceDateCreated"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[IsArchived]"
+                      dataType="bool"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[IsArchived]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[IsArchived]"
+                      name="IsArchived"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[FileStatus]"
+                      dataType="ui1"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[FileStatus]"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[FileStatus]"
+                      name="FileStatus"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[ParentRoute]"
+                      codePage="1252"
+                      dataType="str"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[ParentRoute]"
+                      length="24"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].Columns[ParentRoute]"
+                      name="ParentRoute"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[IsDeleted]"
+                      dataType="bool"
+                      name="IsDeleted" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDocumentID]"
+                      dataType="guid"
+                      name="SourceDocumentID" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceParentKind]"
+                      codePage="1252"
+                      dataType="str"
+                      length="1"
+                      name="SourceParentKind" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceParentID]"
+                      codePage="1252"
+                      dataType="str"
+                      length="40"
+                      name="SourceParentID" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[LegacyEntityID]"
+                      dataType="i8"
+                      name="LegacyEntityID" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceFileName]"
+                      dataType="wstr"
+                      length="500"
+                      name="SourceFileName" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceFilePath]"
+                      dataType="nText"
+                      name="SourceFilePath" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentDescription]"
+                      dataType="wstr"
+                      length="255"
+                      name="DocumentDescription" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentExtension]"
+                      dataType="wstr"
+                      length="25"
+                      name="DocumentExtension" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceContentKind]"
+                      codePage="1252"
+                      dataType="str"
+                      length="9"
+                      name="SourceContentKind" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDocumentTypeID]"
+                      dataType="i4"
+                      name="SourceDocumentTypeID" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDocumentTypeName]"
+                      dataType="wstr"
+                      length="150"
+                      name="SourceDocumentTypeName" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[ContentSHA256]"
+                      codePage="1252"
+                      dataType="str"
+                      length="64"
+                      name="ContentSHA256" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[ContentBytes]"
+                      dataType="i8"
+                      name="ContentBytes" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceCreatedBy]"
+                      dataType="wstr"
+                      length="100"
+                      name="SourceCreatedBy" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[SourceDateCreated]"
+                      dataType="dbTimeStamp"
+                      name="SourceDateCreated" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[IsArchived]"
+                      dataType="bool"
+                      name="IsArchived" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[FileStatus]"
+                      dataType="ui1"
+                      name="FileStatus" />
+                    <externalMetadataColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[ParentRoute]"
+                      codePage="1252"
+                      dataType="str"
+                      length="24"
+                      name="ParentRoute" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output]"
+                  isErrorOut="true"
+                  name="OLE DB Source Error Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDocumentID]"
+                      dataType="guid"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDocumentID]"
+                      name="SourceDocumentID" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceParentKind]"
+                      codePage="1252"
+                      dataType="str"
+                      length="1"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceParentKind]"
+                      name="SourceParentKind" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceParentID]"
+                      codePage="1252"
+                      dataType="str"
+                      length="40"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceParentID]"
+                      name="SourceParentID" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[LegacyEntityID]"
+                      dataType="i8"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[LegacyEntityID]"
+                      name="LegacyEntityID" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceFileName]"
+                      dataType="wstr"
+                      length="500"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceFileName]"
+                      name="SourceFileName" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceFilePath]"
+                      dataType="nText"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceFilePath]"
+                      name="SourceFilePath" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentDescription]"
+                      dataType="wstr"
+                      length="255"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentDescription]"
+                      name="DocumentDescription" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentExtension]"
+                      dataType="wstr"
+                      length="25"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentExtension]"
+                      name="DocumentExtension" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceContentKind]"
+                      codePage="1252"
+                      dataType="str"
+                      length="9"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceContentKind]"
+                      name="SourceContentKind" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDocumentTypeID]"
+                      dataType="i4"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDocumentTypeID]"
+                      name="SourceDocumentTypeID" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDocumentTypeName]"
+                      dataType="wstr"
+                      length="150"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDocumentTypeName]"
+                      name="SourceDocumentTypeName" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ContentSHA256]"
+                      codePage="1252"
+                      dataType="str"
+                      length="64"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ContentSHA256]"
+                      name="ContentSHA256" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ContentBytes]"
+                      dataType="i8"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ContentBytes]"
+                      name="ContentBytes" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceCreatedBy]"
+                      dataType="wstr"
+                      length="100"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceCreatedBy]"
+                      name="SourceCreatedBy" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDateCreated]"
+                      dataType="dbTimeStamp"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[SourceDateCreated]"
+                      name="SourceDateCreated" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[IsArchived]"
+                      dataType="bool"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[IsArchived]"
+                      name="IsArchived" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[IsDeleted]"
+                      dataType="bool"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[IsDeleted]"
+                      name="IsDeleted" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[FileStatus]"
+                      dataType="ui1"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[FileStatus]"
+                      name="FileStatus" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ParentRoute]"
+                      codePage="1252"
+                      dataType="str"
+                      length="24"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ParentRoute]"
+                      name="ParentRoute" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\Load Manifest.Paths[OLE DB Source Output]"
+              endId="Package\Load Manifest\OLE DB Destination.Inputs[OLE DB Destination Input]"
+              name="OLE DB Source Output"
+              startId="Package\Load Manifest\OLE DB Source.Outputs[OLE DB Source Output]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Load SQL Blobs"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Data Flow Task"
+      DTS:DTSID="{AAC72CF9-00F4-42CE-A56D-9D56517079FE}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Load SQL Blobs"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\Load SQL Blobs\Blob not ready"
+              componentClassID="Microsoft.RowCount"
+              contactInfo="Row Count;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;0"
+              description="Counts rows as they pass through a data flow. For example, use the number of rows processed to determine whether or not to perform cleanup operations, or update text in an e-mail message to communicate processing status."
+              name="Blob not ready">
+              <properties>
+                <property
+                  dataType="System.Null"
+                  description="Specifies the variable to hold the row count."
+                  name="VariableName" />
+              </properties>
+              <inputs>
+                <input
+                  refId="Package\Load SQL Blobs\Blob not ready.Inputs[Row Count Input 1]"
+                  hasSideEffects="true"
+                  name="Row Count Input 1">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Load SQL Blobs\Blob not ready.Outputs[Row Count Output 1]"
+                  name="Row Count Output 1"
+                  synchronousInputId="Package\Load SQL Blobs\Blob not ready.Inputs[Row Count Input 1]">
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Load SQL Blobs\Lookup"
+              componentClassID="Microsoft.Lookup"
+              contactInfo="Lookup;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;6"
+              description="Joins additional columns to the data flow by looking up values in a table. For example, join to the 'employee id' column the employees table to get 'hire date' and 'employee name'. We recommend this transformation when the lookup table can fit into memory."
+              name="Lookup"
+              usesDispositions="true"
+              version="6">
+              <properties>
+                <property
+                  dataType="System.String"
+                  description="Specifies the SQL statement that generates the lookup table."
+                  expressionType="Notify"
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT
+    SourceDocumentID,
+    DocumentDescription,
+    DocumentExtension,
+    SourceCreatedBy,
+    SourceDateCreated,
+    FileStatus
+FROM
+(
+    SELECT
+        SourceDocumentID,
+        DocumentDescription,
+        DocumentExtension,
+        SourceCreatedBy,
+        SourceDateCreated,
+        FileStatus,
+        ROW_NUMBER() OVER (PARTITION BY SourceDocumentID ORDER BY TransferID) AS rn
+    FROM migration.DocumentTransfer
+    WHERE MigrationStatus = 'Ready'
+      AND SourceContentKind = 'SqlBlob'
+      AND NOT EXISTS
+      (
+          SELECT 1
+          FROM dbo.tblDocuments AS d
+          WHERE d.Document_ID = migration.DocumentTransfer.SourceDocumentID
+      )
+) AS x
+WHERE rn = 1;</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies a SQL statement that uses parameters to generate the lookup table."
+                  expressionType="Notify"
+                  name="SqlCommandParam"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the type of connection used to access the reference dataset."
+                  name="ConnectionType"
+                  typeConverter="LookupConnectionType">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the cache type of the lookup table."
+                  name="CacheType"
+                  typeConverter="CacheType">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies how the Lookup transformation handles rows without matching entries in the reference data set."
+                  name="NoMatchBehavior"
+                  typeConverter="LookupNoMatchBehavior">1</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the percentage of the cache that is allocated for rows with no matching entries in the reference dataset."
+                  name="NoMatchCachePercentage">0</property>
+                <property
+                  dataType="System.Int32"
+                  description="Maximum Memory Usage for Reference Cache on a 32 bit platform."
+                  name="MaxMemoryUsage">25</property>
+                <property
+                  dataType="System.Int64"
+                  description="Maximum Memory Usage for Reference Cache on a 64 bit platform."
+                  name="MaxMemoryUsage64">25</property>
+                <property
+                  dataType="System.String"
+                  description="Indicates whether to reference metadata in an XML format."
+                  name="ReferenceMetadataXml"></property>
+                <property
+                  containsID="true"
+                  dataType="System.String"
+                  description="Specifies the list of lineage identifiers that map to the parameters that the SQL statement in the SQLCommand property uses. Entries in the list are separated by semicolons."
+                  name="ParameterMap"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Determines whether duplicate keys in the reference data should be treated as errors when full cache mode is used."
+                  name="TreatDuplicateKeysAsError">false</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Load SQL Blobs\Lookup.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  description="Connection manager used to access lookup data."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Load SQL Blobs\Lookup.Inputs[Lookup Input]"
+                  name="Lookup Input">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Match Output]"
+                  errorOrTruncationOperation="Lookup"
+                  exclusionGroup="1"
+                  name="Lookup Match Output"
+                  synchronousInputId="Package\Load SQL Blobs\Lookup.Inputs[Lookup Input]">
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Load SQL Blobs\Lookup.Outputs[Lookup No Match Output]"
+                  description="The Lookup output that handles rows with no matching entries in the reference dataset. Use this output when the NoMatchBehavior property is set to &quot;Send rows with no matching entries to the no match output.&quot;"
+                  exclusionGroup="1"
+                  name="Lookup No Match Output"
+                  synchronousInputId="Package\Load SQL Blobs\Lookup.Inputs[Lookup Input]">
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Error Output]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Lookup Error Output"
+                  synchronousInputId="Package\Load SQL Blobs\Lookup.Inputs[Lookup Input]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Load SQL Blobs\OLE DB Destination"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="OLE DB Destination;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;4"
+              description="OLE DB Destination"
+              name="OLE DB Destination"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the name of the database object used to open a rowset."
+                  name="OpenRowset">[dbo].[tblDocuments]</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the variable that contains the name of the database object used to open a rowset."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="The SQL command to be executed."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forces the use of the DefaultCodePage property value when describing character data."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the mode used to access the database."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indicates whether the values supplied for identity columns will be copied to the destination. If false, values for identity columns will be auto-generated at the destination. Applies only if fast load is turned on."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indicates whether the columns containing null will have null inserted in the destination. If false, columns containing null will have their default values inserted at the destination. Applies only if fast load is turned on."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies options to be used with fast load.  Applies only if fast load is turned on."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS,ROWS_PER_BATCH = 200</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies when commits are issued during data insertion.  A value of 0 specifies that one commit will be issued at the end of data insertion.  Applies only if fast load is turned on."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Load SQL Blobs\OLE DB Destination.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  description="The OLE DB runtime connection used to access the database."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input]"
+                  errorOrTruncationOperation="Insert"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="OLE DB Destination Input">
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document_ID]"
+                      dataType="guid"
+                      name="Document_ID" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document_Description]"
+                      dataType="wstr"
+                      length="255"
+                      name="Document_Description" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document_Extension]"
+                      dataType="wstr"
+                      length="25"
+                      name="Document_Extension" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Document]"
+                      dataType="image"
+                      name="Document" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[created_by]"
+                      codePage="1252"
+                      dataType="str"
+                      length="50"
+                      name="created_by" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[created_date]"
+                      dataType="dbTimeStamp"
+                      name="created_date" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Archive_Date]"
+                      dataType="dbTimeStamp"
+                      name="Archive_Date" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[File_Status]"
+                      dataType="i4"
+                      name="File_Status" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Load SQL Blobs\OLE DB Destination.Outputs[OLE DB Destination Error Output]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="OLE DB Destination Error Output"
+                  synchronousInputId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Load SQL Blobs\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Load SQL Blobs\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Load SQL Blobs\OLE DB Source"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="OLE DB Source;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;7"
+              description="OLE DB Source"
+              name="OLE DB Source"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the name of the database object used to open a rowset."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the variable that contains the name of the database object used to open a rowset."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="The SQL command to be executed."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT
+    d.DocumentID,
+    d.DocumentFile
+FROM ehd.Document AS d
+WHERE d.FilePath = 'import process'
+  AND d.DocumentFile IS NOT NULL
+  AND EXISTS
+  (
+      SELECT 1
+      FROM ehd.Inspection AS i
+      JOIN ehd.Permit AS p ON p.PermitID = i.PermitID
+      WHERE i.InspectionID = d.InspectionID
+        AND p.EntityId = 3630
+  );</property>
+                <property
+                  dataType="System.String"
+                  description="The variable that contains the SQL command to be executed."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forces the use of the DefaultCodePage property value when describing character data."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the mode used to access the database."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="The mappings between the parameters in the SQL command and variables."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Load SQL Blobs\OLE DB Source.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS009.EHD_v3]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS009.EHD_v3]"
+                  description="The OLE DB runtime connection used to access the database."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output]"
+                  name="OLE DB Source Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentID]"
+                      dataType="guid"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentID]"
+                      lineageId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentID]"
+                      name="DocumentID"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentFile]"
+                      dataType="image"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentFile]"
+                      lineageId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].Columns[DocumentFile]"
+                      name="DocumentFile"
+                      truncationRowDisposition="FailComponent" />
+                  </outputColumns>
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentID]"
+                      dataType="guid"
+                      name="DocumentID" />
+                    <externalMetadataColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[DocumentFile]"
+                      dataType="image"
+                      name="DocumentFile" />
+                  </externalMetadataColumns>
+                </output>
+                <output
+                  refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output]"
+                  isErrorOut="true"
+                  name="OLE DB Source Error Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentID]"
+                      dataType="guid"
+                      lineageId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentID]"
+                      name="DocumentID" />
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentFile]"
+                      dataType="image"
+                      lineageId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[DocumentFile]"
+                      name="DocumentFile" />
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\Load SQL Blobs.Paths[Lookup Match Output]"
+              endId="Package\Load SQL Blobs\OLE DB Destination.Inputs[OLE DB Destination Input]"
+              name="Lookup Match Output"
+              startId="Package\Load SQL Blobs\Lookup.Outputs[Lookup Match Output]" />
+            <path
+              refId="Package\Load SQL Blobs.Paths[Lookup No Match Output]"
+              endId="Package\Load SQL Blobs\Blob not ready.Inputs[Row Count Input 1]"
+              name="Lookup No Match Output"
+              startId="Package\Load SQL Blobs\Lookup.Outputs[Lookup No Match Output]" />
+            <path
+              refId="Package\Load SQL Blobs.Paths[OLE DB Source Output]"
+              endId="Package\Load SQL Blobs\Lookup.Inputs[Lookup Input]"
+              name="OLE DB Source Output"
+              startId="Package\Load SQL Blobs\OLE DB Source.Outputs[OLE DB Source Output]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Stage Disk Files"
+      DTS:CreationName="Microsoft.Pipeline"
+      DTS:Description="Data Flow Task"
+      DTS:DTSID="{FC4E4182-7CEF-48B5-B8DF-8C263C4829CD}"
+      DTS:ExecutableType="Microsoft.Pipeline"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Stage Disk Files"
+      DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <pipeline
+          version="1">
+          <components>
+            <component
+              refId="Package\Stage Disk Files\Import Column"
+              componentClassID="Microsoft.Inserter"
+              contactInfo="Import Column;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;0"
+              description="Reads data from files and adds it to columns in a data flow. For example, use an input column of file paths to import photographs from a directory."
+              name="Import Column"
+              usesDispositions="true">
+              <inputs>
+                <input
+                  refId="Package\Stage Disk Files\Import Column.Inputs[Import Column Input]"
+                  name="Import Column Input">
+                  <externalMetadataColumns />
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Stage Disk Files\Import Column.Outputs[Import Column Output]"
+                  exclusionGroup="1"
+                  name="Import Column Output"
+                  synchronousInputId="Package\Stage Disk Files\Import Column.Inputs[Import Column Input]">
+                  <externalMetadataColumns />
+                </output>
+                <output
+                  refId="Package\Stage Disk Files\Import Column.Outputs[Import Column Error Output]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="Import Column Error Output"
+                  synchronousInputId="Package\Stage Disk Files\Import Column.Inputs[Import Column Input]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Stage Disk Files\Import Column.Outputs[Import Column Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Stage Disk Files\Import Column.Outputs[Import Column Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Stage Disk Files\Import Column.Outputs[Import Column Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Stage Disk Files\Import Column.Outputs[Import Column Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Stage Disk Files\OLE DB Destination"
+              componentClassID="Microsoft.OLEDBDestination"
+              contactInfo="OLE DB Destination;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;4"
+              description="OLE DB Destination"
+              name="OLE DB Destination"
+              usesDispositions="true"
+              version="4">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the name of the database object used to open a rowset."
+                  name="OpenRowset">[dbo].[Active_DOH_Certs_2017_12_04]</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the variable that contains the name of the database object used to open a rowset."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="The SQL command to be executed."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forces the use of the DefaultCodePage property value when describing character data."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the mode used to access the database."
+                  name="AccessMode"
+                  typeConverter="AccessMode">3</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indicates whether the values supplied for identity columns will be copied to the destination. If false, values for identity columns will be auto-generated at the destination. Applies only if fast load is turned on."
+                  name="FastLoadKeepIdentity">false</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Indicates whether the columns containing null will have null inserted in the destination. If false, columns containing null will have their default values inserted at the destination. Applies only if fast load is turned on."
+                  name="FastLoadKeepNulls">false</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies options to be used with fast load.  Applies only if fast load is turned on."
+                  name="FastLoadOptions">TABLOCK,CHECK_CONSTRAINTS</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies when commits are issued during data insertion.  A value of 0 specifies that one commit will be issued at the end of data insertion.  Applies only if fast load is turned on."
+                  name="FastLoadMaxInsertCommitSize">2147483647</property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Stage Disk Files\OLE DB Destination.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  description="The OLE DB runtime connection used to access the database."
+                  name="OleDbConnection" />
+              </connections>
+              <inputs>
+                <input
+                  refId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input]"
+                  errorOrTruncationOperation="Insert"
+                  errorRowDisposition="FailComponent"
+                  hasSideEffects="true"
+                  name="OLE DB Destination Input">
+                  <externalMetadataColumns
+                    isUsed="True">
+                    <externalMetadataColumn
+                      refId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Active/Inactive]"
+                      dataType="wstr"
+                      length="255"
+                      name="Active/Inactive" />
+                    <externalMetadataColumn
+                      refId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Last]"
+                      dataType="wstr"
+                      length="255"
+                      name="Last" />
+                    <externalMetadataColumn
+                      refId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[First]"
+                      dataType="wstr"
+                      length="255"
+                      name="First" />
+                    <externalMetadataColumn
+                      refId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input].ExternalColumns[Certificate Number]"
+                      dataType="wstr"
+                      length="255"
+                      name="Certificate Number" />
+                  </externalMetadataColumns>
+                </input>
+              </inputs>
+              <outputs>
+                <output
+                  refId="Package\Stage Disk Files\OLE DB Destination.Outputs[OLE DB Destination Error Output]"
+                  exclusionGroup="1"
+                  isErrorOut="true"
+                  name="OLE DB Destination Error Output"
+                  synchronousInputId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input]">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Stage Disk Files\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Stage Disk Files\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Stage Disk Files\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Stage Disk Files\OLE DB Destination.Outputs[OLE DB Destination Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+            <component
+              refId="Package\Stage Disk Files\OLE DB Source"
+              componentClassID="Microsoft.OLEDBSource"
+              contactInfo="OLE DB Source;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;7"
+              description="OLE DB Source"
+              name="OLE DB Source"
+              usesDispositions="true"
+              version="7">
+              <properties>
+                <property
+                  dataType="System.Int32"
+                  description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                  name="CommandTimeout">0</property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the name of the database object used to open a rowset."
+                  name="OpenRowset"></property>
+                <property
+                  dataType="System.String"
+                  description="Specifies the variable that contains the name of the database object used to open a rowset."
+                  name="OpenRowsetVariable"></property>
+                <property
+                  dataType="System.String"
+                  description="The SQL command to be executed."
+                  name="SqlCommand"
+                  UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">SELECT
+    SourceDocumentID,
+    SourceFilePath
+FROM
+(
+    SELECT
+        SourceDocumentID,
+        SourceFilePath,
+        ROW_NUMBER() OVER (PARTITION BY SourceDocumentID ORDER BY TransferID) AS rn
+    FROM migration.DocumentTransfer
+    WHERE MigrationStatus = 'Ready'
+      AND SourceContentKind = 'FilePath'
+) AS x
+WHERE rn = 1;</property>
+                <property
+                  dataType="System.String"
+                  description="The variable that contains the SQL command to be executed."
+                  name="SqlCommandVariable"></property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the column code page to use when code page information is unavailable from the data source."
+                  name="DefaultCodePage">1252</property>
+                <property
+                  dataType="System.Boolean"
+                  description="Forces the use of the DefaultCodePage property value when describing character data."
+                  name="AlwaysUseDefaultCodePage">false</property>
+                <property
+                  dataType="System.Int32"
+                  description="Specifies the mode used to access the database."
+                  name="AccessMode"
+                  typeConverter="AccessMode">2</property>
+                <property
+                  dataType="System.String"
+                  description="The mappings between the parameters in the SQL command and variables."
+                  name="ParameterMapping"></property>
+              </properties>
+              <connections>
+                <connection
+                  refId="Package\Stage Disk Files\OLE DB Source.Connections[OleDbConnection]"
+                  connectionManagerID="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  connectionManagerRefId="Package.ConnectionManagers[DCHP00DDBS011.EHD_Test]"
+                  description="The OLE DB runtime connection used to access the database."
+                  name="OleDbConnection" />
+              </connections>
+              <outputs>
+                <output
+                  refId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Output]"
+                  name="OLE DB Source Output">
+                  <externalMetadataColumns
+                    isUsed="True" />
+                </output>
+                <output
+                  refId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Error Output]"
+                  isErrorOut="true"
+                  name="OLE DB Source Error Output">
+                  <outputColumns>
+                    <outputColumn
+                      refId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                  </outputColumns>
+                  <externalMetadataColumns />
+                </output>
+              </outputs>
+            </component>
+          </components>
+          <paths>
+            <path
+              refId="Package\Stage Disk Files.Paths[Import Column Output]"
+              endId="Package\Stage Disk Files\OLE DB Destination.Inputs[OLE DB Destination Input]"
+              name="Import Column Output"
+              startId="Package\Stage Disk Files\Import Column.Outputs[Import Column Output]" />
+            <path
+              refId="Package\Stage Disk Files.Paths[OLE DB Source Output]"
+              endId="Package\Stage Disk Files\Import Column.Inputs[Import Column Input]"
+              name="OLE DB Source Output"
+              startId="Package\Stage Disk Files\OLE DB Source.Outputs[OLE DB Source Output]" />
+          </paths>
+        </pipeline>
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint]"
+      DTS:CreationName=""
+      DTS:DTSID="{0645A780-BBFA-4325-B68F-D0916A354CC0}"
+      DTS:From="Package\Clear Working Rows"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint"
+      DTS:To="Package\Load Manifest" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 1]"
+      DTS:CreationName=""
+      DTS:DTSID="{C773C547-E539-4707-A307-7279A97B70AF}"
+      DTS:From="Package\Load Manifest"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 1"
+      DTS:To="Package\Clasify Ledger" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 2]"
+      DTS:CreationName=""
+      DTS:DTSID="{E2BA3A49-8F01-4841-82F7-3FD63B9719BE}"
+      DTS:From="Package\Clasify Ledger"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 2"
+      DTS:To="Package\Load SQL Blobs" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 3]"
+      DTS:CreationName=""
+      DTS:DTSID="{22F2A478-9AF5-4AAD-9DAA-34C9B34E7E21}"
+      DTS:From="Package\Load SQL Blobs"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 3"
+      DTS:To="Package\Link SQL Blobs" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 4]"
+      DTS:CreationName=""
+      DTS:DTSID="{9031481F-9F20-4017-953D-3A41FCFB8E8B}"
+      DTS:From="Package\Link SQL Blobs"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 4"
+      DTS:To="Package\Stage Disk Files" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 5]"
+      DTS:CreationName=""
+      DTS:DTSID="{8FD02FED-3567-48F0-A0F5-EE1AEA33C949}"
+      DTS:From="Package\Stage Disk Files"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 5"
+      DTS:To="Package\Load disk files and reconcile" />
+  </DTS:PrecedenceConstraints>
+  <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
+<!--This CDATA section contains the layout information of the package. The section includes information such as (x,y) coordinates, width, and height.-->
+<!--If you manually edit this section and make a mistake, you can delete it. -->
+<!--The package will still be able to load normally but the previous layout information will be lost and the designer will automatically re-arrange the elements on the design surface.-->
+<Objects
+  Version="8">
+  <!--Each node below will contain properties that do not affect runtime behavior.-->
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="16" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="168,42.6666666666667"
+          Id="Package\Clear Working Rows"
+          TopLeft="87.9999963119627,41.7631574965745" />
+        <NodeLayout
+          Size="146.666666666667,42.6666666666667"
+          Id="Package\Load Manifest"
+          TopLeft="58.7499973736704,147.105261542708" />
+        <NodeLayout
+          Size="148,42.6666666666667"
+          Id="Package\Clasify Ledger"
+          TopLeft="254.999988600612,119.052630271773" />
+        <NodeLayout
+          Size="157.333333333334,42.6666666666667"
+          Id="Package\Load SQL Blobs"
+          TopLeft="481.874978458509,109.473683008527" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint]"
+          TopLeft="171.999996311963,84.4298241632412">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-39.916665604959,62.6754373794668"
+              Start="0,0"
+              End="-39.916665604959,55.1754373794668">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,27.3377186897334" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,27.3377186897334"
+                    Point2="0,31.3377186897334"
+                    Point3="-4,31.3377186897334" />
+                  <mssgle:LineSegment
+                    End="-35.916665604959,31.3377186897334" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-35.916665604959,31.3377186897334"
+                    Point2="-39.916665604959,31.3377186897334"
+                    Point3="-39.916665604959,35.3377186897334" />
+                  <mssgle:LineSegment
+                    End="-39.916665604959,55.1754373794668" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 1]"
+          TopLeft="205.416664040337,168.438594876041">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="49.5833245602751,-28.052631270935"
+              Start="0,0"
+              End="42.0833245602751,-28.052631270935">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="20.7916622801375,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="20.7916622801375,0"
+                    Point2="24.7916622801375,0"
+                    Point3="24.7916622801375,-4" />
+                  <mssgle:LineSegment
+                    End="24.7916622801375,-24.052631270935" />
+                  <mssgle:CubicBezierSegment
+                    Point1="24.7916622801375,-24.052631270935"
+                    Point2="24.7916622801375,-28.052631270935"
+                    Point3="28.7916622801375,-28.052631270935" />
+                  <mssgle:LineSegment
+                    End="42.0833245602751,-28.052631270935" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 2]"
+          TopLeft="402.999988600612,140.385963605106">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="78.8749898578973,-9.57894726324614"
+              Start="0,0"
+              End="71.3749898578973,-9.57894726324614">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="35.4374949289487,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="35.4374949289487,0"
+                    Point2="39.4374949289487,0"
+                    Point3="39.4374949289487,-4" />
+                  <mssgle:LineSegment
+                    End="39.4374949289487,-5.57894726324614" />
+                  <mssgle:CubicBezierSegment
+                    Point1="39.4374949289487,-5.57894726324614"
+                    Point2="39.4374949289487,-9.57894726324614"
+                    Point3="43.4374949289487,-9.57894726324614" />
+                  <mssgle:LineSegment
+                    End="71.3749898578973,-9.57894726324614" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="153.333333333334,42.6666666666667"
+          Id="Package\Link SQL Blobs"
+          TopLeft="494.374977899716,187.473682152102" />
+        <NodeLayout
+          Size="156,42.6666666666667"
+          Id="Package\Stage Disk Files"
+          TopLeft="527.499976418913,265.473681295678" />
+        <NodeLayout
+          Size="213.333333333334,42.6666666666667"
+          Id="Package\Load disk files and reconcile"
+          TopLeft="648.124971026556,52.4561398700775" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 3]"
+          TopLeft="560.541645125176,152.140349675194">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="10.4999994412066,35.3333324769087"
+              Start="0,0"
+              End="10.4999994412066,27.8333324769087">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,13.6666662384543" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,13.6666662384543"
+                    Point2="0,17.6666662384543"
+                    Point3="4,17.6666662384543" />
+                  <mssgle:LineSegment
+                    End="6.49999944120657,17.6666662384543" />
+                  <mssgle:CubicBezierSegment
+                    Point1="6.49999944120657,17.6666662384543"
+                    Point2="10.4999994412066,17.6666662384543"
+                    Point3="10.4999994412066,21.6666662384543" />
+                  <mssgle:LineSegment
+                    End="10.4999994412066,27.8333324769087" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 4]"
+          TopLeft="571.041644566383,230.140348818769">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="34.4583318525306,35.3333324769087"
+              Start="0,0"
+              End="34.4583318525306,27.8333324769087">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,13.6666662384544" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,13.6666662384544"
+                    Point2="0,17.6666662384544"
+                    Point3="4,17.6666662384544" />
+                  <mssgle:LineSegment
+                    End="30.4583318525306,17.6666662384544" />
+                  <mssgle:CubicBezierSegment
+                    Point1="30.4583318525306,17.6666662384544"
+                    Point2="34.4583318525306,17.6666662384544"
+                    Point3="34.4583318525306,21.6666662384544" />
+                  <mssgle:LineSegment
+                    End="34.4583318525306,27.8333324769087" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 5]"
+          TopLeft="630.16664308558,265.473681295678">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="124.624994607643,-170.350874758934"
+              Start="0,0"
+              End="124.624994607643,-162.850874758934">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,-65.1780202066736" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,-65.1780202066736"
+                    Point2="0,-69.1780202066736"
+                    Point3="4,-69.1780202066736" />
+                  <mssgle:LineSegment
+                    End="120.624994607643,-69.1780202066736" />
+                  <mssgle:CubicBezierSegment
+                    Point1="120.624994607643,-69.1780202066736"
+                    Point2="124.624994607643,-69.1780202066736"
+                    Point3="124.624994607643,-73.1780202066736" />
+                  <mssgle:LineSegment
+                    End="124.624994607643,-162.850874758934" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
+  <TaskHost
+    design-time-name="Package\Load Manifest">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="155.333333333334,42"
+          Id="Package\Load Manifest\OLE DB Source"
+          TopLeft="96.8749956693502,99.2105252264775" />
+        <NodeLayout
+          Size="174.666666666667,42.6666666666667"
+          Id="Package\Load Manifest\OLE DB Destination"
+          TopLeft="448.124979967252,103.315788339297" />
+        <EdgeLayout
+          Id="Package\Load Manifest.Paths[OLE DB Source Output]"
+          TopLeft="252.208329002684,122.429823449554">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="195.916650964569,0"
+              Start="0,0"
+              End="188.416650964569,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="188.416650964569,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\Load Manifest\OLE DB Source">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\Load Manifest\OLE DB Destination">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\Load SQL Blobs">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="8" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        <NodeLayout
+          Size="154.666666666667,42.6666666666667"
+          Id="Package\Load SQL Blobs\OLE DB Source"
+          TopLeft="384.999988526106,181.999994575977" />
+        <NodeLayout
+          Size="114.666666666667,42.6666666666667"
+          Id="Package\Load SQL Blobs\Lookup"
+          TopLeft="674.999979883433,181.999994575977" />
+        <EdgeLayout
+          Id="Package\Load SQL Blobs.Paths[OLE DB Source Output]"
+          TopLeft="539.666655192773,203.333327909311">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="135.33332469066,0"
+              Start="0,0"
+              End="127.83332469066,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="127.83332469066,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="174.666666666667,42.6666666666667"
+          Id="Package\Load SQL Blobs\OLE DB Destination"
+          TopLeft="982.999970704318,125.999996244908" />
+        <NodeLayout
+          Size="148,42.6666666666667"
+          Id="Package\Load SQL Blobs\Blob not ready"
+          TopLeft="1036.99996909499,259.999992251396" />
+        <EdgeLayout
+          Id="Package\Load SQL Blobs.Paths[Lookup Match Output]"
+          TopLeft="789.6666465501,203.333327909311">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="193.333324154218,-55.9999983310699"
+              Start="0,0"
+              End="185.833324154218,-55.9999983310699">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="92.6666620771092,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="92.6666620771092,0"
+                    Point2="96.6666620771092,0"
+                    Point3="96.6666620771092,-4" />
+                  <mssgle:LineSegment
+                    End="96.6666620771092,-51.9999983310699" />
+                  <mssgle:CubicBezierSegment
+                    Point1="96.6666620771092,-51.9999983310699"
+                    Point2="96.6666620771092,-55.9999983310699"
+                    Point3="100.666662077109,-55.9999983310699" />
+                  <mssgle:LineSegment
+                    End="185.833324154218,-55.9999983310699" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <mssgm:EdgeLabel
+              BoundingBox="48.4752753583591,1,96.3827734375,11.609375"
+              RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\Load SQL Blobs.Paths[Lookup No Match Output]"
+          TopLeft="732.333313216766,224.666661242644">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="378.666655878226,35.3333310087523"
+              Start="0,0"
+              End="378.666655878226,27.8333310087523">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,13.6666655043762" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,13.6666655043762"
+                    Point2="0,17.6666655043762"
+                    Point3="4,17.6666655043762" />
+                  <mssgle:LineSegment
+                    End="374.666655878226,17.6666655043762" />
+                  <mssgle:CubicBezierSegment
+                    Point1="374.666655878226,17.6666655043762"
+                    Point2="378.666655878226,17.6666655043762"
+                    Point3="378.666655878226,21.6666655043762" />
+                  <mssgle:LineSegment
+                    End="378.666655878226,27.8333310087523" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <mssgm:EdgeLabel
+              BoundingBox="133.526941220363,22.6666655043762,111.6127734375,11.609375"
+              RelativePosition="Any" />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\Load SQL Blobs\OLE DB Source">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\Load SQL Blobs\Lookup">
+    <Properties>
+      <Property>
+        <Name>OverwriteParamsSQLProp</Name>
+        <Value
+          type="q2:boolean">false</Value>
+      </Property>
+      <Property>
+        <Name>UsedTableName</Name>
+        <Value
+          type="q3:string"></Value>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q4:int">0</Value>
+      </Property>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\Load SQL Blobs\OLE DB Destination">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\Stage Disk Files">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="8" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="154.666666666667,42.6666666666667"
+          Id="Package\Stage Disk Files\OLE DB Source"
+          TopLeft="376.999988764525,230.999993115664" />
+        <NodeLayout
+          Size="174.666666666667,42.6666666666667"
+          Id="Package\Stage Disk Files\OLE DB Destination"
+          TopLeft="976.999970883132,213.999993622303" />
+        <NodeLayout
+          Size="149.333333333334,42.6666666666667"
+          Id="Package\Stage Disk Files\Import Column"
+          TopLeft="726.999978333712,225.999993264675" />
+        <EdgeLayout
+          Id="Package\Stage Disk Files.Paths[OLE DB Source Output]"
+          TopLeft="531.666655431191,249.833326523503">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="195.333322902521,0"
+              Start="0,0"
+              End="187.833322902521,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="187.833322902521,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\Stage Disk Files.Paths[Import Column Output]"
+          TopLeft="876.333311667046,247.333326598009">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="100.666659216086,-11.9999996423722"
+              Start="0,0"
+              End="93.1666592160863,-11.9999996423722">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="46.3333296080431,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="46.3333296080431,0"
+                    Point2="50.3333296080431,0"
+                    Point3="50.3333296080431,-4" />
+                  <mssgle:LineSegment
+                    End="50.3333296080431,-7.99999964237216" />
+                  <mssgle:CubicBezierSegment
+                    Point1="50.3333296080431,-7.99999964237216"
+                    Point2="50.3333296080431,-11.9999996423722"
+                    Point3="54.3333296080431,-11.9999996423722" />
+                  <mssgle:LineSegment
+                    End="93.1666592160863,-11.9999996423722" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\Stage Disk Files\OLE DB Source">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <PipelineComponentMetadata
+    design-time-name="Package\Stage Disk Files\OLE DB Destination">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+</Objects>]]></DTS:DesignTimeProperties>
+</DTS:Executable>
